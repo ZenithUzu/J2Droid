@@ -10,6 +10,9 @@ on:
       - 'runtime-extra/**'
       - 'runtime-m3g/**'
   workflow_dispatch:
+concurrency:
+  group: j2droid-main-build
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
