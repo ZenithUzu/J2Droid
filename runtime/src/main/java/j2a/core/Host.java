@@ -491,7 +491,7 @@ public final class Host {
 
     static void showPortMenu() {
         runOnUi(() -> PortUi.show(activity, "Menú del juego", new String[]{
-                "Continuar", "Pantalla", "Controles", "Rendimiento", "Audio", "Partidas"
+                "Continuar", "Pantalla", "Controles", "Rendimiento", "Audio", "Partidas", "Salir"
         }, -1, which -> {
             switch (which) {
                 case 0: break;
@@ -500,6 +500,7 @@ public final class Host {
                 case 3: showSettings("Rendimiento"); break;
                 case 4: showAudioMenu(); break;
                 case 5: showSettings("Partidas"); break;
+                case 6: requestExit(); break;
                 default: break;
             }
         }, null, true));
@@ -538,11 +539,7 @@ public final class Host {
                         new Thread(() -> {try {SaveSaf.restore(activity);runOnUi(() ->
                             Toast.makeText(activity,"Restauración terminada. Reinicia el juego.",Toast.LENGTH_LONG).show());}
                             catch(Exception e){runOnUi(() -> SaveSaf.error(activity,e));}}, "j2a-save-restore").start()).show();
-            });
-            item.accept("▶ Continuar", () -> {});
-            item.accept("Tecla izquierda del juego (menú / aceptar)", () -> tapKey(Keys.SOFT_LEFT));
-            item.accept("Tecla derecha del juego (atrás / pausa)", () -> tapKey(Keys.SOFT_RIGHT));
-            item.accept("# IMAGEN Y PANTALLA", () -> {});
+            });            item.accept("# IMAGEN Y PANTALLA", () -> {});
             item.accept("Resolución: " + cfg.screenWidth + "x" + cfg.screenHeight, Host::pickResolution);
             item.accept("Widescreen: " + (cfg.expandedViewport ? "lienzo ampliado" : "original"), Host::pickWidescreen);
             item.accept("Rotación: " + (cfg.orientation.length() == 0 || "auto".equals(cfg.orientation) ? "la del teléfono"
