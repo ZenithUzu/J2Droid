@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 concurrency:
   group: j2droid-main-build
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
@@ -49,6 +49,11 @@ jobs:
           mkdir -p android-offline/converter/src/main/res/mipmap-anydpi-v26
           cp branding/ic_j2droid_foreground.xml branding/ic_j2droid_monochrome.xml branding/ic_j2droid_background.xml android-offline/converter/src/main/res/drawable/
           cp branding/ic_launcher.xml android-offline/converter/src/main/res/mipmap-anydpi-v26/
+          mkdir -p android-offline/converter/src/main/res/xml
+          cat > android-offline/converter/src/main/res/xml/file_paths.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="generated-apk" path="ready.apk"/></paths>
+          XML
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android-offline/converter/src/main/AndroidManifest.xml')
