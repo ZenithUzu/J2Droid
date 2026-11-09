@@ -32,14 +32,23 @@ public final class MainActivity extends Activity {
     private TextView text(String value,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
     private Button button(LinearLayout parent,String label,View.OnClickListener action){Button b=new Button(this);b.setText(label);b.setTextColor(accent());b.setAllCaps(false);b.setOnClickListener(action);parent.addView(b,new LinearLayout.LayoutParams(-1,dp(54)));return b;}
     private int BG=0xff14111e, PANEL=0xff252032, ITEM=0xff342d43, WHITE=0xfff6f1ff, MUTED=0xffbcb0cf, LAVENDER=0xffcbb4ff;
-    private void applySystemPalette(){
-        if(Build.VERSION.SDK_INT<31)return;
-        BG=getColor(android.R.color.system_neutral1_900);
-        PANEL=getColor(android.R.color.system_neutral1_800);
-        ITEM=getColor(android.R.color.system_neutral2_700);
-        WHITE=getColor(android.R.color.system_neutral1_50);
-        MUTED=getColor(android.R.color.system_neutral2_200);
-        LAVENDER=getColor(android.R.color.system_accent1_200);
+    private boolean nightMode() {
+        return (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+            == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+    private void applySystemPalette() {
+        boolean dark=nightMode();
+        if(Build.VERSION.SDK_INT>=31) {
+            BG=getColor(dark?android.R.color.system_neutral1_900:android.R.color.system_neutral1_50);
+            PANEL=getColor(dark?android.R.color.system_neutral1_800:android.R.color.system_neutral1_100);
+            ITEM=getColor(dark?android.R.color.system_neutral2_700:android.R.color.system_neutral2_100);
+            WHITE=getColor(dark?android.R.color.system_neutral1_50:android.R.color.system_neutral1_900);
+            MUTED=getColor(dark?android.R.color.system_neutral2_200:android.R.color.system_neutral2_700);
+            LAVENDER=getColor(dark?android.R.color.system_accent1_200:android.R.color.system_accent1_600);
+        } else if(!dark) {
+            BG=0xfff9f7fc;PANEL=0xffefebf5;ITEM=0xffe7e1ee;
+            WHITE=0xff211b28;MUTED=0xff615b68;LAVENDER=0xff684a9d;
+        }
     }
     private LinearLayout content;
     private TextView fileDetails;
@@ -65,6 +74,10 @@ public final class MainActivity extends Activity {
         // The converter has one task. Keep only controls that directly support it.
         TextView title=label("J2Droid",30,true);
         margin(content,title,-2,7);
+        try {
+            String version=getPackageManager().getPackageInfo(getPackageName(),0).versionName;
+            margin(content,text("Versión "+version,12,MUTED,false),-2,1);
+        } catch(Exception ignored) {}
         margin(content,text("Convierte juegos Java ME a APK en tu teléfono.",14,MUTED,false),-2,2);
 
         section("Juego");
@@ -151,7 +164,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         applySystemPalette();
         getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
-        getWindow().getDecorView().setSystemUiVisibility(0);
+        getWindow().getDecorView().setSystemUiVisibility(nightMode()?0:(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
         SharedPreferences saved=getSharedPreferences(BuildService.STATE,0);
         if(saved.getBoolean("busy",false)&&!BuildService.isRunning())saved.edit().putBoolean("busy",false).putString("log",saved.getString("log","")+"\\nLa conversión anterior se interrumpió.\\n").apply();
         LinearLayout root=column();root.setBackgroundColor(BG);
