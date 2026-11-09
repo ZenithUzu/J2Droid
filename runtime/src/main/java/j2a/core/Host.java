@@ -604,9 +604,9 @@ public final class Host {
                 if (label.startsWith("# ")) { section = label.substring(2); continue; }
                 boolean display = section.equals("IMAGEN Y PANTALLA") || label.startsWith("Centrar imagen") || label.startsWith("Ajuste automático");
                 boolean performance = section.equals("RENDIMIENTO");
-                boolean more = section.equals("HERRAMIENTAS") || section.equals("PARTIDA");
-                if (label.contains("Continuar") || label.startsWith("Filtros:")) continue;
-                if (!(category.equals("Pantalla") && display || category.equals("Rendimiento") && performance || category.equals("Más opciones") && more)) continue;
+                boolean saves = section.equals("PARTIDA");
+                if (label.contains("Continuar")) continue;
+                if (!(category.equals("Pantalla") && display || category.equals("Rendimiento") && performance || category.equals("Partidas") && saves)) continue;
                 filtered.add(label.replace("Tecla izquierda del juego (menú / aceptar)", "Tecla izquierda")
                         .replace("Tecla derecha del juego (atrás / pausa)", "Tecla derecha")
                         .replace("Girar imagen del juego", "Giro de imagen")
