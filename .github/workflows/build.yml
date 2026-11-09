@@ -4,7 +4,6 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/build.yml'
-      - 'branding/**'
       - 'android-offline/**'
       - 'runtime/**'
       - 'runtime-extra/**'
@@ -35,44 +34,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # J2Droid is built exactly from JarNix sources: same engine, menus, icons and signing as PC.
           for folder in android-offline runtime runtime-extra runtime-m3g; do
             mkdir -p "$folder"
-            if [ "$folder" = android-offline ]; then
-              rsync -a --delete --exclude="gradle.properties" --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/java/j2a/offline/OfflineBuilder.java" --exclude="converter/src/main/AndroidManifest.xml" --exclude="converter/build.gradle" --exclude="converter/src/main/res/**" "_upstream/$folder/" "$folder/"
-            elif [ "$folder" = runtime ]; then
-              rsync -a --delete --exclude="src/main/java/j2a/core/Host.java" --exclude="src/main/java/j2a/core/J2meActivity.java" "_upstream/$folder/" "$folder/"
-            else
-              rsync -a --delete "_upstream/$folder/" "$folder/"
-            fi
+            rsync -a --delete --exclude=build --exclude=.gradle "_upstream/$folder/" "$folder/"
           done
-          mkdir -p android-offline/converter/src/main/res/drawable
-          mkdir -p android-offline/converter/src/main/res/mipmap-anydpi-v26
-          cp branding/ic_j2droid_foreground.xml branding/ic_j2droid_monochrome.xml branding/ic_j2droid_background.xml android-offline/converter/src/main/res/drawable/
-          rm -f android-offline/converter/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-          cp branding/ic_launcher.xml android-offline/converter/src/main/res/mipmap-anydpi-v26/ic_launcher_v4.xml
-          mkdir -p android-offline/converter/src/main/res/drawable-nodpi
-          cp branding/j2droid_art.png android-offline/converter/src/main/res/drawable-nodpi/
-          mkdir -p android-offline/converter/src/main/res/xml
-          cat > android-offline/converter/src/main/res/xml/file_paths.xml <<'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="generated-apk" path="."/></paths>
-          XML
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('android-offline/converter/src/main/AndroidManifest.xml')
-          s=p.read_text()
-          import xml.etree.ElementTree as ET
-          ns='{http://schemas.android.com/apk/res/android}'
-          root=ET.fromstring(s)
-          app=root.find('application')
-          if app is None:
-              raise SystemExit('AndroidManifest.xml: missing application')
-          app.set(ns+'label','J2Droid')
-          app.set(ns+'icon','@mipmap/ic_launcher_v4')
-          app.set(ns+'roundIcon','@mipmap/ic_launcher_v4')
-          ET.register_namespace('android','http://schemas.android.com/apk/res/android')
-          ET.ElementTree(root).write(p,encoding='unicode',xml_declaration=True)
-          PY
           rm -rf _upstream
       - name: Validate J2Droid build configuration
         shell: bash
@@ -80,22 +46,16 @@ jobs:
           set -euo pipefail
           grep -Eq '^android\.useAndroidX=true$' android-offline/gradle.properties
           grep -q "androidx.core:core:" android-offline/converter/build.gradle
-          test -f android-offline/converter/src/main/res/xml/file_paths.xml
-          grep -Fq 'files-path name="generated-apk" path="."' android-offline/converter/src/main/res/xml/file_paths.xml
-          test -s android-offline/converter/src/main/res/drawable-nodpi/j2droid_art.png
-          python3 - <<'PY'
-          from pathlib import Path
+          python3 - <<'PY2'
           import xml.etree.ElementTree as ET
           for path in [
               'android-offline/converter/src/main/AndroidManifest.xml',
               'android-offline/converter/src/main/res/xml/file_paths.xml',
-              'branding/ic_launcher.xml',
-              'branding/ic_j2droid_foreground.xml',
-              'branding/ic_j2droid_monochrome.xml',
-              'branding/ic_j2droid_background.xml',
+              'android-offline/converter/src/main/res/mipmap-anydpi-v26/ic_j2droid.xml',
+              'runtime/src/main/res-icon/drawable/j2a_icon.xml',
           ]:
               ET.parse(path)
-          PY
+          PY2
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -117,9 +77,9 @@ jobs:
           set -euo pipefail
           apk=android-offline/converter/build/outputs/apk/debug/converter-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee /tmp/j2droid-badging.txt
-          grep -q "versionName='0.3.1'" /tmp/j2droid-badging.txt
-          grep -q "application: label='J2Droid' icon='res/mipmap-anydpi-v26/ic_launcher_v4.xml'" /tmp/j2droid-badging.txt
-          unzip -Z1 "$apk" | grep -F 'res/mipmap-anydpi-v26/ic_launcher_v4.xml'
+          grep -q "versionName='0.4.0'" /tmp/j2droid-badging.txt
+          grep -q "application: label='J2Droid' icon='res/mipmap-anydpi-v26/ic_j2droid.xml'" /tmp/j2droid-badging.txt
+          unzip -Z1 "$apk" | grep -F 'res/mipmap-anydpi-v26/ic_j2droid.xml'
       - name: Prepare sole distributable APK
         run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk J2Droid.apk
       - uses: actions/upload-artifact@v4

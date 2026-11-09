@@ -490,20 +490,24 @@ public final class Host {
     }
 
     static void showPortMenu() {
+        // Same menu in APKs built by JarNix (PC) and J2Droid (Android).
         runOnUi(() -> PortUi.show(activity, "Menú del juego", new String[]{
-                "Continuar", "Pantalla", "Controles", "Rendimiento", "Audio", "Partidas", "Salir"
-        }, -1, which -> {
-            switch (which) {
-                case 0: break;
-                case 1: showSettings("Pantalla"); break;
-                case 2: showControlsMenu(); break;
-                case 3: showSettings("Rendimiento"); break;
-                case 4: showAudioMenu(); break;
-                case 5: showSettings("Partidas"); break;
-                case 6: requestExit(); break;
-                default: break;
-            }
-        }, null, true));
+                "Continuar",
+                "Pantalla: " + cfg.screenWidth + " × " + cfg.screenHeight,
+                "Filtros: " + Shaders.label(activity, cfg.shader),
+                "Controles", "Sonido: " + (cfg.sound ? "Activado" : "Desactivado"),
+                "Rendimiento", "Más opciones", "Salir"}, -1, which -> {
+                    switch (which) {
+                        case 0: break;
+                        case 1: showSettings("Pantalla"); break;
+                        case 2: showFiltersMenu(); break;
+                        case 3: showControlsMenu(); break;
+                        case 4: showAudioMenu(); break;
+                        case 5: showSettings("Rendimiento"); break;
+                        case 6: showSettings("Más opciones"); break;
+                        default: requestExit(); break;
+                    }
+                }, null, true));
     }
 
     private static void showAudioMenu() {
@@ -539,7 +543,11 @@ public final class Host {
                         new Thread(() -> {try {SaveSaf.restore(activity);runOnUi(() ->
                             Toast.makeText(activity,"Restauración terminada. Reinicia el juego.",Toast.LENGTH_LONG).show());}
                             catch(Exception e){runOnUi(() -> SaveSaf.error(activity,e));}}, "j2a-save-restore").start()).show();
-            });            item.accept("# IMAGEN Y PANTALLA", () -> {});
+            });
+            item.accept("▶ Continuar", () -> {});
+            item.accept("Tecla izquierda del juego (menú / aceptar)", () -> tapKey(Keys.SOFT_LEFT));
+            item.accept("Tecla derecha del juego (atrás / pausa)", () -> tapKey(Keys.SOFT_RIGHT));
+            item.accept("# IMAGEN Y PANTALLA", () -> {});
             item.accept("Resolución: " + cfg.screenWidth + "x" + cfg.screenHeight, Host::pickResolution);
             item.accept("Widescreen: " + (cfg.expandedViewport ? "lienzo ampliado" : "original"), Host::pickWidescreen);
             item.accept("Rotación: " + (cfg.orientation.length() == 0 || "auto".equals(cfg.orientation) ? "la del teléfono"
@@ -601,9 +609,9 @@ public final class Host {
                 if (label.startsWith("# ")) { section = label.substring(2); continue; }
                 boolean display = section.equals("IMAGEN Y PANTALLA") || label.startsWith("Centrar imagen") || label.startsWith("Ajuste automático");
                 boolean performance = section.equals("RENDIMIENTO");
-                boolean saves = section.equals("PARTIDA");
-                if (label.contains("Continuar")) continue;
-                if (!(category.equals("Pantalla") && display || category.equals("Rendimiento") && performance || category.equals("Partidas") && saves)) continue;
+                boolean more = section.equals("HERRAMIENTAS") || section.equals("PARTIDA");
+                if (label.contains("Continuar") || label.startsWith("Filtros:")) continue;
+                if (!(category.equals("Pantalla") && display || category.equals("Rendimiento") && performance || category.equals("Más opciones") && more)) continue;
                 filtered.add(label.replace("Tecla izquierda del juego (menú / aceptar)", "Tecla izquierda")
                         .replace("Tecla derecha del juego (atrás / pausa)", "Tecla derecha")
                         .replace("Girar imagen del juego", "Giro de imagen")
