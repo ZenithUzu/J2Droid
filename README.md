@@ -8,17 +8,27 @@ El instalador distribuido es **J2Droid.apk**. La plantilla del motor se compila 
 
 [Descargar la compilación de desarrollo](https://github.com/ZenithUzu/J2Droid/releases/tag/j2droid-latest) · [Ver compilaciones y registros](https://github.com/ZenithUzu/J2Droid/actions)
 
-**Importante:** la APK de GitHub Actions usa firma de depuración; las compilaciones de desarrollo pueden no actualizarse entre sí sin reinstalar. La identidad usada para firmar los juegos convertidos se guarda por separado en la aplicación y puede exportarse en formato PKCS#12. Conserva su respaldo.
+## Cómo se usa
+
+1. **Importar JAR** (y, si quieres, un JAD).
+2. **Crear APK**.
+3. **Instalar** o **Guardar** la APK.
+
+**Llaves de firma:** usa **Exportar llaves** antes de borrar o reinstalar J2Droid, e **Importar llaves** después. No se pide contraseña. El mismo archivo `.p12` sirve en JarNix (PC), así los juegos se actualizan desde cualquiera de las dos herramientas sin perder partidas.
+
+**Importante:** la APK de J2Droid de GitHub Actions usa firma de depuración; las compilaciones de desarrollo pueden no actualizarse entre sí sin reinstalar (tus llaves exportadas no se pierden).
 
 ## Código y compilación
 
-La fuente Android se sincroniza desde [JarNix](https://github.com/ZenithUzu/JarNix-Java-ME-Porting-Toolkit) a este repositorio mediante el workflow [build.yml](.github/workflows/build.yml), que copia `android-offline/`, `runtime/`, `runtime-extra/` y `runtime-m3g/`, incorpora el icono de J2Droid, compila y publica **un único instalador**. Los cambios del motor deben hacerse en JarNix, origen compartido; las personalizaciones específicas de J2Droid se mantienen aquí en `branding/`.
+La fuente Android se sincroniza desde [JarNix](https://github.com/ZenithUzu/JarNix-Java-ME-Porting-Toolkit) a este repositorio mediante el workflow [build.yml](.github/workflows/build.yml), que copia `android-offline/`, `runtime/`, `runtime-extra/` y `runtime-m3g/` sin modificarlos, compila y publica **un único instalador**. Todo el código (pantalla, icono, motor y menús de los juegos) se edita en JarNix, así las APK de juegos salen iguales desde PC y desde Android.
 
 Para compilar manualmente después de sincronizar: JDK 17, SDK 35, Build Tools 35, NDK 28.2.13676358; ejecutar `cd android-offline && ./gradlew :converter:assembleDebug`. La primera compilación necesita descargar dependencias.
 
 ## Icono adaptable
 
-El icono combina un robot Android y una taza de Java. Incluye capas adaptativas y una capa monocromática para iconos temáticos en Android 13+ (cuando el lanzador y el usuario habiliten esa función). El icono normal conserva su propio color; no cambia automáticamente en todos los dispositivos.
+Taza de Java con la cabeza de Android recortada sobre un degradado violeta → azul → turquesa. Es adaptativo (se ajusta a la forma del lanzador) e incluye capa monocromática para los iconos temáticos de Android 13+. La pantalla de J2Droid usa los colores dinámicos de Material You en Android 12+.
+
+Las APK de juegos usan el icono original que trae cada JAR, igual que las creadas con JarNix.
 
 ## Licencia, atribución y colaboración
 
