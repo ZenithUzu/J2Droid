@@ -18,7 +18,7 @@ import java.util.concurrent.*;
 public final class MainActivity extends Activity {
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ExecutorService files=Executors.newSingleThreadExecutor();
-    private Button pickJar,pickJad,clearJad,convert,save;
+    private Button pickJar,pickJad,clearJad,convert,save,install;
     private TextView selected,status,log;
     private ProgressBar progress;
     private boolean copying;
@@ -84,6 +84,7 @@ public final class MainActivity extends Activity {
         margin(content,entry("Carpeta Java","Se configura dentro de cada juego convertido",v->new android.app.AlertDialog.Builder(this).setTitle("Partidas RMS").setMessage("Cada juego convertido permite elegir su carpeta Java desde el menú del propio juego. Esta opción no se configura desde J2Droid.").setPositiveButton("Entendido",null).show()),-2,10);
         convert=new Button(this);convert.setText("✦  Crear APK");convert.setTextSize(18);convert.setAllCaps(false);convert.setTextColor(0xff241734);convert.setBackground(shape(LAVENDER,28));convert.setOnClickListener(v->startBuild());margin(content,convert,62,23);
         save=new Button(this);save.setText("Guardar APK");save.setAllCaps(false);save.setTextColor(WHITE);save.setBackground(shape(ITEM,17));save.setOnClickListener(v->saveApk());margin(content,save,48,10);
+        install=new Button(this);install.setText("Instalar APK");install.setAllCaps(false);install.setTextColor(WHITE);install.setBackground(shape(ITEM,17));install.setOnClickListener(v->installApk());margin(content,install,48,10);
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);margin(content,progress,5,12);
         status=text("",13,MUTED,false);margin(content,status,-2,10);
         log=text("",12,MUTED,false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);margin(content,log,-2,8);
@@ -142,6 +143,7 @@ public final class MainActivity extends Activity {
         convert.setEnabled(!busy&&!jar.isEmpty());convert.setAlpha(convert.isEnabled()?1f:0.55f);
         save.setEnabled(!busy&&!result.isEmpty()&&new File(result).isFile());
         save.setVisibility(save.isEnabled()?View.VISIBLE:View.GONE);
+        install.setEnabled(save.isEnabled());install.setVisibility(save.isEnabled()?View.VISIBLE:View.GONE);
         progress.setVisibility(busy?View.VISIBLE:View.GONE);
         status.setText(busy?"Convirtiendo juego…":save.isEnabled()?"APK lista para guardar":"");
         String lines=state.getString("log","");
@@ -202,6 +204,27 @@ public final class MainActivity extends Activity {
                 if(!restore)intent.putExtra(Intent.EXTRA_TITLE,"J2Droid-firma.p12");
                 startActivityForResult(intent,restore?5:4);
             }).show();
+    }
+    private void installApk(){
+        String path=getSharedPreferences(BuildService.STATE,0).getString("result","");
+        File apk=new File(path);
+        if(!apk.isFile()){Toast.makeText(this,"Primero crea una APK",Toast.LENGTH_LONG).show();return;}
+        if(android.os.Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
+            new android.app.AlertDialog.Builder(this).setTitle("Permitir instalación")
+                .setMessage("Android requiere autorizar a J2Droid para instalar las APK que genera. No es necesario guardarlas en Descargas.")
+                .setNegativeButton("Cancelar",null).setPositiveButton("Abrir ajustes",(d,w)->{
+                    Intent settings=new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:"+getPackageName()));startActivity(settings);
+                }).show();
+            return;
+        }
+        try{
+            Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".fileprovider",apk);
+            Intent view=new Intent(Intent.ACTION_VIEW).setDataAndType(uri,"application/vnd.android.package-archive");
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(view);
+        }catch(Exception e){new android.app.AlertDialog.Builder(this).setTitle("No se pudo instalar")
+            .setMessage(e.getMessage()).setPositiveButton("Cerrar",null).show();}
     }
     private void saveApk(){String result=getSharedPreferences(BuildService.STATE,0).getString("result","");if(result.isEmpty())return;Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/vnd.android.package-archive").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,new File(result).getName());startActivityForResult(intent,3);}
     @Override protected void onActivityResult(int request,int code,Intent intent) {
