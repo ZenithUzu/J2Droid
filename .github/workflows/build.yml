@@ -54,7 +54,7 @@ jobs:
           mkdir -p android-offline/converter/src/main/res/xml
           cat > android-offline/converter/src/main/res/xml/file_paths.xml <<'XML'
           <?xml version="1.0" encoding="utf-8"?>
-          <paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="generated-apk" path="ready.apk"/></paths>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="generated-apk" path="."/></paths>
           XML
           python3 - <<'PY'
           from pathlib import Path
@@ -79,6 +79,7 @@ jobs:
           grep -Eq '^android\.useAndroidX=true$' android-offline/gradle.properties
           grep -q "androidx.core:core:" android-offline/converter/build.gradle
           test -f android-offline/converter/src/main/res/xml/file_paths.xml
+          grep -Fq 'files-path name="generated-apk" path="."' android-offline/converter/src/main/res/xml/file_paths.xml
           test -s android-offline/converter/src/main/res/drawable-nodpi/j2droid_art.png
           python3 - <<'PY'
           from pathlib import Path
