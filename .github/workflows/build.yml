@@ -38,7 +38,7 @@ jobs:
           for folder in android-offline runtime runtime-extra runtime-m3g; do
             mkdir -p "$folder"
             if [ "$folder" = android-offline ]; then
-              rsync -a --delete --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/java/j2a/offline/OfflineBuilder.java" --exclude="converter/src/main/AndroidManifest.xml" --exclude="converter/build.gradle" --exclude="converter/src/main/res/**" "_upstream/$folder/" "$folder/"
+              rsync -a --delete --exclude="gradle.properties" --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/java/j2a/offline/OfflineBuilder.java" --exclude="converter/src/main/AndroidManifest.xml" --exclude="converter/build.gradle" --exclude="converter/src/main/res/**" "_upstream/$folder/" "$folder/"
             elif [ "$folder" = runtime ]; then
               rsync -a --delete --exclude="src/main/java/j2a/core/Host.java" --exclude="src/main/java/j2a/core/J2meActivity.java" "_upstream/$folder/" "$folder/"
             else
@@ -70,18 +70,26 @@ jobs:
           ET.ElementTree(root).write(p,encoding='unicode',xml_declaration=True)
           PY
           rm -rf _upstream
-      - name: Commit imported source to J2Droid
+      - name: Validate J2Droid build configuration
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add android-offline runtime runtime-extra runtime-m3g
-          if ! git diff --cached --quiet; then
-            git commit -m "Sync J2Droid Android code and J2Legacy runtime from JarNix"
-            git fetch origin main
-            git rebase origin/main
-            git push origin HEAD:main
-          fi
+          set -euo pipefail
+          grep -Eq '^android\.useAndroidX=true$' android-offline/gradle.properties
+          grep -q "androidx.core:core:" android-offline/converter/build.gradle
+          test -f android-offline/converter/src/main/res/xml/file_paths.xml
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          for path in [
+              'android-offline/converter/src/main/AndroidManifest.xml',
+              'android-offline/converter/src/main/res/xml/file_paths.xml',
+              'branding/ic_launcher.xml',
+              'branding/ic_j2droid_foreground.xml',
+              'branding/ic_j2droid_monochrome.xml',
+              'branding/ic_j2droid_background.xml',
+          ]:
+              ET.parse(path)
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -96,7 +104,7 @@ jobs:
         working-directory: android-offline
         run: |
           chmod +x gradlew
-          ./gradlew :converter:assembleDebug --stacktrace
+          ./gradlew :converter:assembleDebug --stacktrace --warning-mode all
       - name: Prepare sole distributable APK
         run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk J2Droid.apk
       - uses: actions/upload-artifact@v4
