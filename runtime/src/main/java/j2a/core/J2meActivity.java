@@ -58,6 +58,20 @@ public class J2meActivity extends Activity {
         root.addView(gl, new FrameLayout.LayoutParams(-1, -1));
         root.addView(view, new FrameLayout.LayoutParams(-1, -1));
         root.addView(screens, new FrameLayout.LayoutParams(-1, -1));
+        // Accessible port menu, even on phones without a hardware Menu key.
+        android.widget.TextView portMenu=new android.widget.TextView(this);
+        portMenu.setText("⚙");portMenu.setTextSize(19);portMenu.setTextColor(0xffFFFFFF);
+        portMenu.setGravity(android.view.Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable bubble=new android.graphics.drawable.GradientDrawable();
+        bubble.setColor(0x99302A40);bubble.setCornerRadius(100);
+        portMenu.setBackground(bubble);
+        portMenu.setContentDescription("Abrir menú del port");
+        portMenu.setOnClickListener(v->Host.showPortMenu());
+        int size=(int)(48*getResources().getDisplayMetrics().density);
+        FrameLayout.LayoutParams menuParams=new FrameLayout.LayoutParams(size,size,android.view.Gravity.TOP|android.view.Gravity.END);
+        menuParams.topMargin=(int)(10*getResources().getDisplayMetrics().density);
+        menuParams.rightMargin=menuParams.topMargin;
+        root.addView(portMenu,menuParams);
         setContentView(root);
         view.requestFocus();
 
