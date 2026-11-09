@@ -87,7 +87,6 @@ jobs:
               'android-offline/converter/src/main/AndroidManifest.xml',
               'android-offline/converter/src/main/res/xml/file_paths.xml',
               'branding/ic_launcher.xml',
-              'branding/ic_j2droid_background.xml',
               'branding/ic_j2droid_foreground.xml',
               'branding/ic_j2droid_monochrome.xml',
               'branding/ic_j2droid_background.xml',
@@ -109,32 +108,14 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :converter:assembleDebug --stacktrace --warning-mode all
-      - name: Verify version and actual icon in compiled APK
+      - name: Verify APK identity and packaged branding
         shell: bash
         run: |
           set -euo pipefail
           apk=android-offline/converter/build/outputs/apk/debug/converter-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee /tmp/j2droid-badging.txt
           grep -q "versionName='0.3.0'" /tmp/j2droid-badging.txt
-          unzip -Z1 "$apk" | grep -E 'j2droid_art.*\\.png
-        run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk J2Droid.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: J2Droid
-          path: J2Droid.apk
-          if-no-files-found: error
-      - name: Publish one APK in GitHub Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          if ! gh release view j2droid-latest >/dev/null 2>&1; then
-            gh release create j2droid-latest J2Droid.apk --title "J2Droid · Latest development build" --notes "Una sola APK de J2Droid. Incluye el motor J2Legacy para convertir juegos sin conexión. Compilación de desarrollo firmada con clave de depuración; no se garantiza actualización directa entre compilaciones."
-          else
-            gh release upload j2droid-latest J2Droid.apk --clobber
-          fi
-
+          unzip -Z1 "$apk" | grep -E 'j2droid_art.*[.]png$'
       - name: Prepare sole distributable APK
         run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk J2Droid.apk
       - uses: actions/upload-artifact@v4
