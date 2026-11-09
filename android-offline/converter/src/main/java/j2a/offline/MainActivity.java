@@ -74,23 +74,11 @@ public final class MainActivity extends Activity {
     private void showConvertPage(){
         LinearLayout header=horizontal();
         TextView title=label("☕  J2Droid",26,true);header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-        TextView settings=action("⚙",false,v->showSettings());header.addView(settings,new LinearLayout.LayoutParams(dp(52),dp(48)));
         margin(content,header,-2,4);
         TextView subtitle=text("Java ME → Android",13,MUTED,false);margin(content,subtitle,-2,0);
         fileDetails=text("Seleccionar juego JAR",16,WHITE,true);
         LinearLayout file=column();file.setPadding(dp(18),dp(16),dp(18),dp(16));file.setBackground(shape(PANEL,20));file.addView(fileDetails);
         file.addView(text("Toca para elegir un archivo",13,MUTED,false));file.setOnClickListener(v->pick(1));margin(content,file,-2,23);
-        section("Configuración");
-        margin(content,entry("Nombre del juego","Se detecta automáticamente del JAR",v->showProjects()),-2,12);
-        margin(content,entry("ID del paquete","Se genera a partir de los metadatos del juego",v->showProjects()),-2,8);
-        section("Firma del juego");
-        LinearLayout signing=horizontal();signing.setPadding(dp(10),dp(10),dp(10),dp(10));signing.setBackground(shape(PANEL,18));
-        TextView signingLabel=text("🔑  Firma local",14,WHITE,true);signing.addView(signingLabel,new LinearLayout.LayoutParams(0,-2,1));
-        TextView backup=action("Respaldar",false,v->askBackup(false));signing.addView(backup);
-        TextView restore=action("Restaurar",false,v->askBackup(true));LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-2,-2);rp.leftMargin=dp(6);signing.addView(restore,rp);
-        margin(content,signing,-2,10);
-        section("Partidas (RMS)");
-        margin(content,entry("Carpeta Java","Se configura dentro de cada juego convertido",v->new android.app.AlertDialog.Builder(this).setTitle("Partidas RMS").setMessage("Cada juego convertido permite elegir su carpeta Java desde el menú del propio juego. Esta opción no se configura desde J2Droid.").setPositiveButton("Entendido",null).show()),-2,10);
         convert=new Button(this);convert.setText("✦  Crear APK");convert.setTextSize(18);convert.setAllCaps(false);convert.setTextColor(BG);convert.setBackground(shape(LAVENDER,28));convert.setOnClickListener(v->startBuild());margin(content,convert,62,23);
         save=new Button(this);save.setText("Guardar APK");save.setAllCaps(false);save.setTextColor(WHITE);save.setBackground(shape(ITEM,17));save.setOnClickListener(v->saveApk());margin(content,save,48,10);
         install=new Button(this);install.setText("Instalar APK");install.setAllCaps(false);install.setTextColor(WHITE);install.setBackground(shape(ITEM,17));install.setOnClickListener(v->installApk());margin(content,install,48,10);
@@ -99,20 +87,22 @@ public final class MainActivity extends Activity {
         log=text("",12,MUTED,false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);margin(content,log,-2,8);
         selected=fileDetails;pickJar=convert;pickJad=convert;clearJad=convert;
     }
-    private void showSettings(){
-        String[] options={"Seleccionar JAD (opcional)","Quitar JAD","Información de firma"};
-        new android.app.AlertDialog.Builder(this).setTitle("Opciones avanzadas").setItems(options,(d,which)->{
-            if(which==0)pick(2);
-            else if(which==1){getPreferences(0).edit().remove("jad").apply();Toast.makeText(this,"JAD quitado",Toast.LENGTH_SHORT).show();}
-            else new android.app.AlertDialog.Builder(this).setTitle("Firma de juegos").setMessage("Respalda la identidad de firma antes de borrar los datos de J2Droid. Sin ella no podrás actualizar juegos ya firmados con esa clave.").setPositiveButton("Cerrar",null).show();
-        }).setNegativeButton("Cerrar",null).show();
-    }
     private void showProjectsPage(){
         margin(content,label("Proyectos",25,true),-2,8);
         String jar=getPreferences(0).getString("jar","");
         if(jar.isEmpty())margin(content,entry("Todavía no hay juego seleccionado","Selecciona un JAR para ver sus datos",v->showPage(0)),-2,18);
         else margin(content,entry(getPreferences(0).getString("name","Juego.jar"),"Ver información del juego",v->showProjects()),-2,18);
         margin(content,action("Seleccionar JAR",true,v->pick(1)),55,18);
+        section("Archivo JAD");
+        margin(content,entry("Seleccionar JAD (opcional)","Solo si el juego lo necesita",v->pick(2)),-2,10);
+        if(!getPreferences(0).getString("jad","").isEmpty())
+            margin(content,entry("Quitar JAD","Eliminar archivo complementario seleccionado",v->{
+                getPreferences(0).edit().remove("jad").apply();
+                showPage(1);
+            }),-2,8);
+        section("Firma para actualizaciones");
+        margin(content,entry("Respaldar firma","Conserva la firma de tus juegos al cambiar de teléfono",v->askBackup(false)),-2,10);
+        margin(content,entry("Restaurar firma","Solo antes de generar una firma nueva",v->askBackup(true)),-2,8);
     }
     private void showHistoryPage(){
         margin(content,label("Historial",25,true),-2,8);
