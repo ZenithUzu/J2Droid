@@ -48,11 +48,16 @@ jobs:
           from pathlib import Path
           p=Path('android-offline/converter/src/main/AndroidManifest.xml')
           s=p.read_text()
-          s=s.replace('android:label="J2Droid"', 'android:label="J2Droid"')
-          s=s.replace('android:label="j2a Offline"', 'android:label="J2Droid"')
-          if 'android:icon=' not in s:
-              s=s.replace('android:label="J2Droid"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
-          p.write_text(s)
+          import xml.etree.ElementTree as ET
+          ns='{http://schemas.android.com/apk/res/android}'
+          root=ET.fromstring(s)
+          app=root.find('application')
+          if app is None:
+              raise SystemExit('AndroidManifest.xml: missing application')
+          app.set(ns+'label','J2Droid')
+          app.set(ns+'icon','@mipmap/ic_launcher')
+          ET.register_namespace('android','http://schemas.android.com/apk/res/android')
+          ET.ElementTree(root).write(p,encoding='unicode',xml_declaration=True)
           PY
           rm -rf _upstream
       - name: Commit imported source to J2Droid
