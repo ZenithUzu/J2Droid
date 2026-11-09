@@ -53,6 +53,8 @@ jobs:
           git add android-offline runtime runtime-extra runtime-m3g
           if ! git diff --cached --quiet; then
             git commit -m "Sync J2Droid Android code and J2Legacy runtime from JarNix"
+            git fetch origin main
+            git rebase origin/main
             git push origin HEAD:main
           fi
       - uses: actions/setup-java@v4
