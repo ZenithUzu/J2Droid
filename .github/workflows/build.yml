@@ -35,7 +35,7 @@ jobs:
           for folder in android-offline runtime runtime-extra runtime-m3g; do
             mkdir -p "$folder"
             if [ "$folder" = android-offline ]; then
-              rsync -a --delete --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/AndroidManifest.xml" "_upstream/$folder/" "$folder/"
+              rsync -a --delete --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/java/j2a/offline/OfflineBuilder.java" --exclude="converter/src/main/AndroidManifest.xml" --exclude="converter/build.gradle" --exclude="converter/src/main/res/**" "_upstream/$folder/" "$folder/"
             else
               rsync -a --delete "_upstream/$folder/" "$folder/"
             fi
