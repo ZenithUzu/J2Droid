@@ -31,7 +31,16 @@ public final class MainActivity extends Activity {
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     private TextView text(String value,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
     private Button button(LinearLayout parent,String label,View.OnClickListener action){Button b=new Button(this);b.setText(label);b.setTextColor(accent());b.setAllCaps(false);b.setOnClickListener(action);parent.addView(b,new LinearLayout.LayoutParams(-1,dp(54)));return b;}
-    private static final int BG=0xff14111e, PANEL=0xff252032, ITEM=0xff342d43, WHITE=0xfff6f1ff, MUTED=0xffbcb0cf, LAVENDER=0xffcbb4ff;
+    private int BG=0xff14111e, PANEL=0xff252032, ITEM=0xff342d43, WHITE=0xfff6f1ff, MUTED=0xffbcb0cf, LAVENDER=0xffcbb4ff;
+    private void applySystemPalette(){
+        if(Build.VERSION.SDK_INT<31)return;
+        BG=getColor(android.R.color.system_neutral1_900);
+        PANEL=getColor(android.R.color.system_neutral1_800);
+        ITEM=getColor(android.R.color.system_neutral2_700);
+        WHITE=getColor(android.R.color.system_neutral1_50);
+        MUTED=getColor(android.R.color.system_neutral2_200);
+        LAVENDER=getColor(android.R.color.system_accent1_200);
+    }
     private LinearLayout content,nav;
     private TextView fileDetails;
     private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -51,7 +60,7 @@ public final class MainActivity extends Activity {
         l.addView(label(title,15,true));if(subtitle!=null)l.addView(text(subtitle,13,MUTED,false));l.setMinimumHeight(dp(62));l.setOnClickListener(action);return l;
     }
     private TextView action(String title,boolean primary,View.OnClickListener click){
-        TextView v=text(title,primary?18:14,primary?0xff241734:WHITE,true);v.setGravity(Gravity.CENTER);v.setPadding(dp(12),dp(12),dp(12),dp(12));v.setBackground(shape(primary?LAVENDER:ITEM,primary?28:16));v.setMinimumHeight(dp(primary?58:48));v.setOnClickListener(click);return v;
+        TextView v=text(title,primary?18:14,primary?BG:WHITE,true);v.setGravity(Gravity.CENTER);v.setPadding(dp(12),dp(12),dp(12),dp(12));v.setBackground(shape(primary?LAVENDER:ITEM,primary?28:16));v.setMinimumHeight(dp(primary?58:48));v.setOnClickListener(click);return v;
     }
     private void section(String title){TextView v=text(title,17,LAVENDER,true);margin(content,v,-2,19);}
     private void showPage(int page){
@@ -82,7 +91,7 @@ public final class MainActivity extends Activity {
         margin(content,signing,-2,10);
         section("Partidas (RMS)");
         margin(content,entry("Carpeta Java","Se configura dentro de cada juego convertido",v->new android.app.AlertDialog.Builder(this).setTitle("Partidas RMS").setMessage("Cada juego convertido permite elegir su carpeta Java desde el menú del propio juego. Esta opción no se configura desde J2Droid.").setPositiveButton("Entendido",null).show()),-2,10);
-        convert=new Button(this);convert.setText("✦  Crear APK");convert.setTextSize(18);convert.setAllCaps(false);convert.setTextColor(0xff241734);convert.setBackground(shape(LAVENDER,28));convert.setOnClickListener(v->startBuild());margin(content,convert,62,23);
+        convert=new Button(this);convert.setText("✦  Crear APK");convert.setTextSize(18);convert.setAllCaps(false);convert.setTextColor(BG);convert.setBackground(shape(LAVENDER,28));convert.setOnClickListener(v->startBuild());margin(content,convert,62,23);
         save=new Button(this);save.setText("Guardar APK");save.setAllCaps(false);save.setTextColor(WHITE);save.setBackground(shape(ITEM,17));save.setOnClickListener(v->saveApk());margin(content,save,48,10);
         install=new Button(this);install.setText("Instalar APK");install.setAllCaps(false);install.setTextColor(WHITE);install.setBackground(shape(ITEM,17));install.setOnClickListener(v->installApk());margin(content,install,48,10);
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);margin(content,progress,5,12);
@@ -120,6 +129,7 @@ public final class MainActivity extends Activity {
     }
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
+        applySystemPalette();
         getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
         getWindow().getDecorView().setSystemUiVisibility(0);
         SharedPreferences saved=getSharedPreferences(BuildService.STATE,0);
