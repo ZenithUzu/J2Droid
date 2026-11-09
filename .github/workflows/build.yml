@@ -48,8 +48,10 @@ jobs:
           from pathlib import Path
           p=Path('android-offline/converter/src/main/AndroidManifest.xml')
           s=p.read_text()
-          s=s.replace('android:label="J2Droid"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
-          s=s.replace('android:label="j2a Offline"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
+          s=s.replace('android:label="J2Droid"', 'android:label="J2Droid"')
+          s=s.replace('android:label="j2a Offline"', 'android:label="J2Droid"')
+          if 'android:icon=' not in s:
+              s=s.replace('android:label="J2Droid"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
           p.write_text(s)
           PY
           rm -rf _upstream
