@@ -18,8 +18,8 @@ import java.util.concurrent.*;
 public final class MainActivity extends Activity {
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ExecutorService files=Executors.newSingleThreadExecutor();
-    private Button pickJar,pickJad,clearJad,convert,save,install;
-    private TextView selected,status,log;
+    private Button convert,save,install;
+    private TextView selected,status,log,jadDetails;
     private ProgressBar progress;
     private boolean copying;
     private String backupPassword="";
@@ -41,20 +41,13 @@ public final class MainActivity extends Activity {
         MUTED=getColor(android.R.color.system_neutral2_200);
         LAVENDER=getColor(android.R.color.system_accent1_200);
     }
-    private LinearLayout content,nav;
+    private LinearLayout content;
     private TextView fileDetails;
     private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
     private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private LinearLayout horizontal(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
     private TextView label(String text,int size,boolean bold){TextView v=text(text,size,WHITE,bold);return v;}
     private void margin(LinearLayout parent,View child,int height,int top){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,height<0?height:dp(height));p.topMargin=dp(top);parent.addView(child,p);}
-    private TextView tile(String title,String subtitle,View.OnClickListener action){
-        LinearLayout wrapper=column();wrapper.setPadding(dp(17),dp(12),dp(16),dp(12));wrapper.setBackground(shape(ITEM,18));
-        TextView a=label(title,15,true);wrapper.addView(a);if(subtitle!=null){TextView b=text(subtitle,13,MUTED,false);wrapper.addView(b);}
-        wrapper.setOnClickListener(action);wrapper.setMinimumHeight(dp(64));
-        TextView placeholder=new TextView(this); // tile text is represented by its parent
-        placeholder.setTag(wrapper);return placeholder;
-    }
     private LinearLayout entry(String title,String subtitle,View.OnClickListener action){
         LinearLayout l=column();l.setPadding(dp(17),dp(13),dp(17),dp(13));l.setBackground(shape(ITEM,17));
         l.addView(label(title,15,true));if(subtitle!=null)l.addView(text(subtitle,13,MUTED,false));l.setMinimumHeight(dp(62));l.setOnClickListener(action);return l;
@@ -63,59 +56,96 @@ public final class MainActivity extends Activity {
         TextView v=text(title,primary?18:14,primary?BG:WHITE,true);v.setGravity(Gravity.CENTER);v.setPadding(dp(12),dp(12),dp(12),dp(12));v.setBackground(shape(primary?LAVENDER:ITEM,primary?28:16));v.setMinimumHeight(dp(primary?58:48));v.setOnClickListener(click);return v;
     }
     private void section(String title){TextView v=text(title,17,LAVENDER,true);margin(content,v,-2,19);}
-    private void showPage(int page){
+    private void showPage(int page) {
         content.removeAllViews();
-        nav.removeAllViews();
-        if(page==0)showConvertPage();else if(page==1)showProjectsPage();else showHistoryPage();
-        String[] names={"⌂  Convertir","▱  Proyectos","◷  Historial"};
-        for(int i=0;i<3;i++){final int n=i;TextView t=text(names[i],13,i==page?LAVENDER:MUTED,i==page);t.setGravity(Gravity.CENTER);t.setPadding(dp(4),dp(17),dp(4),dp(17));t.setOnClickListener(v->showPage(n));nav.addView(t,new LinearLayout.LayoutParams(0,dp(60),1));}
-        if(page==0)refresh();
+        showConvertPage();
+        refresh();
     }
-    private void showConvertPage(){
-        LinearLayout header=horizontal();
-        TextView title=label("☕  J2Droid",26,true);header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-        margin(content,header,-2,4);
-        TextView subtitle=text("Java ME → Android",13,MUTED,false);margin(content,subtitle,-2,0);
-        fileDetails=text("Seleccionar juego JAR",16,WHITE,true);
-        LinearLayout file=column();file.setPadding(dp(18),dp(16),dp(18),dp(16));file.setBackground(shape(PANEL,20));file.addView(fileDetails);
-        file.addView(text("Toca para elegir un archivo",13,MUTED,false));file.setOnClickListener(v->pick(1));margin(content,file,-2,23);
-        convert=new Button(this);convert.setText("✦  Crear APK");convert.setTextSize(18);convert.setAllCaps(false);convert.setTextColor(BG);convert.setBackground(shape(LAVENDER,28));convert.setOnClickListener(v->startBuild());margin(content,convert,62,23);
-        save=new Button(this);save.setText("Guardar APK");save.setAllCaps(false);save.setTextColor(WHITE);save.setBackground(shape(ITEM,17));save.setOnClickListener(v->saveApk());margin(content,save,48,10);
-        install=new Button(this);install.setText("Instalar APK");install.setAllCaps(false);install.setTextColor(WHITE);install.setBackground(shape(ITEM,17));install.setOnClickListener(v->installApk());margin(content,install,48,10);
-        progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);margin(content,progress,5,12);
-        status=text("",13,MUTED,false);margin(content,status,-2,10);
-        log=text("",12,MUTED,false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);margin(content,log,-2,8);
-        selected=fileDetails;pickJar=convert;pickJad=convert;clearJad=convert;
+    private void showConvertPage() {
+        // The converter has one task. Keep only controls that directly support it.
+        TextView title=label("J2Droid",30,true);
+        margin(content,title,-2,7);
+        margin(content,text("Convierte juegos Java ME a APK en tu teléfono.",14,MUTED,false),-2,2);
+
+        section("Juego");
+        fileDetails=text("Seleccionar archivo JAR",17,WHITE,true);
+        LinearLayout jarCard=column();
+        jarCard.setPadding(dp(20),dp(20),dp(20),dp(20));
+        jarCard.setBackground(shape(PANEL,22));
+        jarCard.addView(fileDetails);
+        TextView jarHint=text("Toca aquí para elegir un archivo .jar",13,MUTED,false);
+        jarCard.addView(jarHint);
+        jarCard.setMinimumHeight(dp(94));
+        jarCard.setOnClickListener(v->pick(1));
+        margin(content,jarCard,-2,12);
+
+        LinearLayout jadCard=horizontal();
+        jadCard.setBackground(shape(ITEM,16));
+        jadCard.setPadding(dp(14),dp(4),dp(8),dp(4));
+        jadDetails=text("JAD opcional",14,WHITE,false);
+        jadCard.addView(jadDetails,new LinearLayout.LayoutParams(0,-2,1));
+        TextView jadButton=action("Elegir JAD",false,v->pick(2));
+        jadCard.addView(jadButton);
+        TextView removeJad=action("Quitar",false,v->{
+            getPreferences(0).edit().remove("jad").apply();
+            refresh();
+        });
+        removeJad.setVisibility(getPreferences(0).getString("jad","").isEmpty()?View.GONE:View.VISIBLE);
+        jadCard.addView(removeJad);
+        jadDetails.setTag(removeJad);
+        margin(content,jadCard,-2,10);
+
+        convert=new Button(this);
+        convert.setText("Crear APK");
+        convert.setTextSize(17);
+        convert.setAllCaps(false);
+        convert.setTextColor(BG);
+        convert.setBackground(shape(LAVENDER,22));
+        convert.setOnClickListener(v->startBuild());
+        margin(content,convert,60,22);
+
+        progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
+        progress.setIndeterminate(true);
+        margin(content,progress,4,18);
+        status=text("",14,MUTED,false);
+        margin(content,status,-2,9);
+
+        LinearLayout actions=horizontal();
+        install=new Button(this);
+        install.setText("Instalar APK");
+        install.setAllCaps(false);
+        install.setTextColor(BG);
+        install.setBackground(shape(LAVENDER,17));
+        install.setOnClickListener(v->installApk());
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(52),1);
+        ap.rightMargin=dp(6);
+        actions.addView(install,ap);
+        save=new Button(this);
+        save.setText("Guardar APK");
+        save.setAllCaps(false);
+        save.setTextColor(WHITE);
+        save.setBackground(shape(ITEM,17));
+        save.setOnClickListener(v->saveApk());
+        LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(0,dp(52),1);
+        sp.leftMargin=dp(6);
+        actions.addView(save,sp);
+        margin(content,actions,-2,7);
+
+        log=text("",12,MUTED,false);
+        log.setTypeface(Typeface.MONOSPACE);
+        log.setTextIsSelectable(true);
+        margin(content,log,-2,14);
+
+        margin(content,entry("Firma de los juegos","Respaldar o restaurar la firma para conservar actualizaciones",v->showSigningOptions()),-2,28);
+        margin(content,text("Las conversiones se realizan sin conexión.",12,MUTED,false),-2,14);
     }
-    private void showProjectsPage(){
-        margin(content,label("Proyectos",25,true),-2,8);
-        String jar=getPreferences(0).getString("jar","");
-        if(jar.isEmpty())margin(content,entry("Todavía no hay juego seleccionado","Selecciona un JAR para ver sus datos",v->showPage(0)),-2,18);
-        else margin(content,entry(getPreferences(0).getString("name","Juego.jar"),"Ver información del juego",v->showProjects()),-2,18);
-        margin(content,action("Seleccionar JAR",true,v->pick(1)),55,18);
-        section("Archivo JAD");
-        margin(content,entry("Seleccionar JAD (opcional)","Solo si el juego lo necesita",v->pick(2)),-2,10);
-        if(!getPreferences(0).getString("jad","").isEmpty())
-            margin(content,entry("Quitar JAD","Eliminar archivo complementario seleccionado",v->{
-                getPreferences(0).edit().remove("jad").apply();
-                showPage(1);
-            }),-2,8);
-        section("Firma para actualizaciones");
-        margin(content,entry("Respaldar firma","Conserva la firma de tus juegos al cambiar de teléfono",v->askBackup(false)),-2,10);
-        margin(content,entry("Restaurar firma","Solo antes de generar una firma nueva",v->askBackup(true)),-2,8);
-    }
-    private void showHistoryPage(){
-        margin(content,label("Historial",25,true),-2,8);
-        SharedPreferences state=getSharedPreferences(BuildService.STATE,0);
-        try{
-            org.json.JSONArray history=new org.json.JSONArray(state.getString("history","[]"));
-            if(history.length()==0)margin(content,text("Todavía no hay conversiones.",14,MUTED,false),-2,20);
-            for(int i=history.length()-1;i>=0;i--){
-                org.json.JSONObject entry=history.getJSONObject(i);
-                String when=android.text.format.DateFormat.format("dd/MM/yyyy HH:mm",entry.optLong("time")).toString();
-                margin(content,entry(entry.optString("name","Juego"),entry.optString("status")+" · "+when,v->showHistory()),-2,10);
-            }
-        }catch(Exception e){margin(content,text("No se pudo cargar el historial.",14,MUTED,false),-2,16);}
+    private void showSigningOptions() {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Firma de juegos")
+            .setMessage("Conserva tu firma para poder actualizar los juegos que ya convertiste. Respáldala antes de borrar los datos de J2Droid.")
+            .setPositiveButton("Respaldar",(d,w)->askBackup(false))
+            .setNeutralButton("Restaurar",(d,w)->askBackup(true))
+            .setNegativeButton("Cancelar",null).show();
     }
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
@@ -128,7 +158,6 @@ public final class MainActivity extends Activity {
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
         content=column();content.setPadding(dp(20),dp(20),dp(20),dp(22));scroll.addView(content);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        nav=horizontal();nav.setPadding(dp(10),dp(2),dp(10),dp(4));nav.setBackground(shape(PANEL,22));root.addView(nav,new LinearLayout.LayoutParams(-1,dp(68)));
         setContentView(root);showPage(0);
     }
     @Override protected void onResume(){super.onResume();ui.post(poll);}
@@ -139,46 +168,21 @@ public final class MainActivity extends Activity {
         SharedPreferences state=getSharedPreferences(BuildService.STATE,0);
         boolean busy=copying||state.getBoolean("busy",false);
         String jar=getPreferences(0).getString("jar",""),jad=getPreferences(0).getString("jad",""),result=state.getString("result","");
-        fileDetails.setText(jar.isEmpty()?"Seleccionar juego JAR":"▤  "+getPreferences(0).getString("name","Juego.jar")+(jad.isEmpty()?"":"  ·  JAD"));
+        fileDetails.setText(jar.isEmpty()?"Seleccionar archivo JAR":getPreferences(0).getString("name","Juego.jar"));
+        if(jadDetails!=null) {
+            jadDetails.setText(jad.isEmpty()?"JAD opcional":"Archivo JAD seleccionado");
+            View remove=(View)jadDetails.getTag();
+            if(remove!=null)remove.setVisibility(jad.isEmpty()?View.GONE:View.VISIBLE);
+        }
         convert.setEnabled(!busy&&!jar.isEmpty());convert.setAlpha(convert.isEnabled()?1f:0.55f);
         save.setEnabled(!busy&&!result.isEmpty()&&new File(result).isFile());
         save.setVisibility(save.isEnabled()?View.VISIBLE:View.GONE);
         install.setEnabled(save.isEnabled());install.setVisibility(save.isEnabled()?View.VISIBLE:View.GONE);
         progress.setVisibility(busy?View.VISIBLE:View.GONE);
-        status.setText(busy?"Convirtiendo juego…":save.isEnabled()?"APK lista para guardar":"");
+        status.setText(busy?"Convirtiendo juego…":save.isEnabled()?"APK lista para instalar o guardar":"");
         String lines=state.getString("log","");
         if(!lines.equals(previousLog)){log.setText(lines.isEmpty()?"":lines);previousLog=lines;}
         log.setVisibility(lines.isEmpty()?View.GONE:View.VISIBLE);
-    }
-    private void showProjects(){
-        SharedPreferences prefs=getPreferences(0);
-        String jar=prefs.getString("jar","");
-        if(jar.isEmpty()){new android.app.AlertDialog.Builder(this).setTitle("Proyectos").setMessage("Selecciona un archivo JAR para consultar los metadatos del juego.").setPositiveButton("Cerrar",null).show();return;}
-        files.execute(()->{
-            String message;
-            try {
-                String jad=prefs.getString("jad","");
-                GameJar game=new GameJar(new File(jar),jad.isEmpty()?null:new File(jad),prefs.getString("name","Juego.jar"));
-                String vendor="No especificado";
-                for(java.util.Map.Entry<String,String> entry:game.attributes.entrySet())if(entry.getKey().equalsIgnoreCase("MIDlet-Vendor"))vendor=entry.getValue();
-                message="Juego: "+game.name+"\nProveedor: "+vendor+"\nVersión: "+game.version+"\nClase MIDlet: "+game.midlet+"\nID del paquete: "+game.appId+"\nResolución: "+game.width+" × "+game.height+" ("+game.confidence+")";
-            }catch(Exception error){message="No se pudieron leer los metadatos: "+error.getMessage();}
-            final String result=message;
-            ui.post(()->new android.app.AlertDialog.Builder(this).setTitle("Proyecto · J2Droid").setMessage(result).setPositiveButton("Cerrar",null).show());
-        });
-    }
-    private void showHistory(){
-        SharedPreferences state=getSharedPreferences(BuildService.STATE,0);
-        StringBuilder summary=new StringBuilder();
-        try{
-            org.json.JSONArray history=new org.json.JSONArray(state.getString("history","[]"));
-            for(int i=history.length()-1;i>=0;i--){
-                org.json.JSONObject entry=history.getJSONObject(i);
-                String date=android.text.format.DateFormat.format("dd/MM/yyyy HH:mm",entry.optLong("time")).toString();
-                summary.append(date).append(" · ").append(entry.optString("status")).append("\n").append(entry.optString("name")).append("\n\n");
-            }
-        }catch(Exception ignored){}
-        new android.app.AlertDialog.Builder(this).setTitle("Historial de conversiones").setMessage(summary.length()==0?"Todavía no hay conversiones registradas.":summary.toString()).setPositiveButton("Cerrar",null).show();
     }
     private void startBuild() {
         SharedPreferences prefs=getPreferences(0);String jar=prefs.getString("jar",null),jad=prefs.getString("jad",null);
