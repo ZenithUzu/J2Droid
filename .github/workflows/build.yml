@@ -1,0 +1,90 @@
+name: Build and publish J2Droid
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'branding/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout J2Droid
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Checkout shared JarNix and J2Legacy sources
+        uses: actions/checkout@v4
+        with:
+          repository: ZenithUzu/JarNix-Java-ME-Porting-Toolkit
+          ref: main
+          path: _upstream
+          persist-credentials: false
+      - name: Import Android converter and shared runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          for folder in android-offline runtime runtime-extra runtime-m3g; do
+            mkdir -p "$folder"
+            rsync -a --delete "_upstream/$folder/" "$folder/"
+          done
+          mkdir -p android-offline/converter/src/main/res/drawable
+          mkdir -p android-offline/converter/src/main/res/mipmap-anydpi-v26
+          cp branding/ic_j2droid_foreground.xml branding/ic_j2droid_monochrome.xml branding/ic_j2droid_background.xml android-offline/converter/src/main/res/drawable/
+          cp branding/ic_launcher.xml android-offline/converter/src/main/res/mipmap-anydpi-v26/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-offline/converter/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          s=s.replace('android:label="J2Droid"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
+          s=s.replace('android:label="j2a Offline"', 'android:label="J2Droid" android:icon="@mipmap/ic_launcher"')
+          p.write_text(s)
+          PY
+          rm -rf _upstream
+      - name: Commit imported source to J2Droid
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-offline runtime runtime-extra runtime-m3g
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync J2Droid Android code and J2Legacy runtime from JarNix"
+            git push origin HEAD:main
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android build dependencies
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.2.13676358'
+      - name: Build single J2Droid APK
+        working-directory: android-offline
+        run: |
+          chmod +x gradlew
+          ./gradlew :converter:assembleDebug --stacktrace
+      - name: Prepare sole distributable APK
+        run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk J2Droid.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: J2Droid
+          path: J2Droid.apk
+          if-no-files-found: error
+      - name: Publish one APK in GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          if ! gh release view j2droid-latest >/dev/null 2>&1; then
+            gh release create j2droid-latest J2Droid.apk --title "J2Droid · Latest development build" --notes "Una sola APK de J2Droid. Incluye el motor J2Legacy para convertir juegos sin conexión. Compilación de desarrollo firmada con clave de depuración; no se garantiza actualización directa entre compilaciones."
+          else
+            gh release upload j2droid-latest J2Droid.apk --clobber
+          fi
