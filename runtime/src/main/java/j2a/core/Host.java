@@ -490,20 +490,19 @@ public final class Host {
     }
 
     static void showPortMenu() {
-        runOnUi(() -> PortUi.show(activity, "Ajustes", new String[]{
-                "Pantalla: " + cfg.screenWidth + " × " + cfg.screenHeight,
-                "Filtros: " + Shaders.label(activity, cfg.shader),
-                "Controles", "Sonido: " + (cfg.sound ? "Activado" : "Desactivado"),
-                "Rendimiento", "Más opciones"}, -1, which -> {
-                    switch (which) {
-                        case 0: showSettings("Pantalla"); break;
-                        case 1: showFiltersMenu(); break;
-                        case 2: showControlsMenu(); break;
-                        case 3: showAudioMenu(); break;
-                        case 4: showSettings("Rendimiento"); break;
-                        default: showSettings("Más opciones"); break;
-                    }
-                }, null, true));
+        runOnUi(() -> PortUi.show(activity, "Menú del juego", new String[]{
+                "Continuar", "Pantalla", "Controles", "Rendimiento", "Audio", "Partidas"
+        }, -1, which -> {
+            switch (which) {
+                case 0: break;
+                case 1: showSettings("Pantalla"); break;
+                case 2: showControlsMenu(); break;
+                case 3: showSettings("Rendimiento"); break;
+                case 4: showAudioMenu(); break;
+                case 5: showSettings("Partidas"); break;
+                default: break;
+            }
+        }, null, true));
     }
 
     private static void showAudioMenu() {
