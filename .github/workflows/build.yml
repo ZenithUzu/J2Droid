@@ -5,6 +5,10 @@ on:
     paths:
       - '.github/workflows/build.yml'
       - 'branding/**'
+      - 'android-offline/**'
+      - 'runtime/**'
+      - 'runtime-extra/**'
+      - 'runtime-m3g/**'
   workflow_dispatch:
 permissions:
   contents: write
@@ -30,7 +34,11 @@ jobs:
           set -euo pipefail
           for folder in android-offline runtime runtime-extra runtime-m3g; do
             mkdir -p "$folder"
-            rsync -a --delete "_upstream/$folder/" "$folder/"
+            if [ "$folder" = android-offline ]; then
+              rsync -a --delete --exclude="converter/src/main/java/j2a/offline/MainActivity.java" --exclude="converter/src/main/AndroidManifest.xml" "_upstream/$folder/" "$folder/"
+            else
+              rsync -a --delete "_upstream/$folder/" "$folder/"
+            fi
           done
           mkdir -p android-offline/converter/src/main/res/drawable
           mkdir -p android-offline/converter/src/main/res/mipmap-anydpi-v26
