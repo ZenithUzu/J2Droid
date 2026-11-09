@@ -20,6 +20,12 @@ Para compilar manualmente después de sincronizar: JDK 17, SDK 35, Build Tools 3
 
 El icono combina un robot Android y una taza de Java. Incluye capas adaptativas y una capa monocromática para iconos temáticos en Android 13+ (cuando el lanzador y el usuario habiliten esa función). El icono normal conserva su propio color; no cambia automáticamente en todos los dispositivos.
 
+## Licencia, atribución y colaboración
+
+El código original de J2Droid está disponible bajo la [licencia MIT](LICENSE). Esto **no convierte en MIT** las bibliotecas y fuentes ajenas incluidas: J2ME Loader, M3G, shaders, D8/R8, apksig y otros componentes conservan sus licencias. Lee [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [NOTICE-EXTRA](runtime-extra/NOTICE-EXTRA.md) y [NOTICE-M3G](runtime-m3g/NOTICE-M3G.md). Los juegos que conviertas siguen perteneciendo a sus respectivos titulares.
+
+J2Droid es un proyecto personal y sin fines de lucro. El desarrollo y la documentación han recibido asistencia de IA, incluidos ChatGPT y Claude; las contribuciones deben revisarse y probarse antes de distribuirlas.
+
 ## Compatibilidad
 
 Android 8 o posterior. La compatibilidad con juegos Java ME depende de sus APIs, gráficos, audio y posibles extensiones propietarias. No todos los JAR están garantizados. El proyecto es experimental y sin fines de lucro.
