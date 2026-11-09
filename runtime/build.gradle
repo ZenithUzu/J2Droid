@@ -1,0 +1,23 @@
+plugins {
+    id 'com.android.library'
+}
+
+// J2ME (MIDP 2.0 / CLDC 1.1 + MMAPI + Nokia/Samsung extensions) implemented on Android.
+android {
+    namespace = 'j2a.runtime'
+    compileSdk = 37
+
+    defaultConfig {
+        minSdk = 21
+    }
+
+    compileOptions {
+        // Java 17: the imported device APIs use modern syntax (the game itself stays Java 8)
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError = false
+    }
+}

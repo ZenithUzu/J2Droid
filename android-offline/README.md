@@ -1,0 +1,63 @@
+# J2Droid · Java ME to Android
+
+Convierte un JAR Java ME a una **APK firmada directamente en Android**, sin Python, Gradle,
+servidor, Termux ni PC durante la conversión. La aplicación incluye D8, apksig y una plantilla
+compilada del motor, con los menús/filtros actuales y bibliotecas M3G/MascotCapsule para ARM y x86_64.
+La herramienta no declara permiso de Internet. Los APK de juegos sí pueden usar la red, como el motor de escritorio.
+
+J2Droid es la aplicación Android del proyecto **JarNix** (PC). Ambas utilizan el motor compartido **J2Legacy**, cuyo código y rutas internas conservan el identificador `j2a` por compatibilidad. La denominación de APK/artefactos de CI aún es `j2a-offline-android` para no romper descargas existentes.
+
+## Interfaz actual
+
+La aplicación se presenta como **J2Droid** en Android. La pantalla de conversión muestra accesos a **Proyectos** (JAR seleccionado) e **Historial** (registro de la última conversión). Estas vistas son iniciales: todavía no hay biblioteca persistente ni historial de todas las compilaciones. Los controles de firma se llaman **Exportar firma** e **Importar firma**. La interfaz definitiva del mockup, con tarjetas y navegación completa, sigue pendiente de implementar y validar.
+
+## Uso
+
+1. Descarga `j2a-offline-android.apk` (nombre técnico actual del artefacto de **J2Droid**) desde la [última versión publicada](https://github.com/ZenithUzu/symbian-a-Android-port/releases) o desde el artefacto **j2a-offline-android** en GitHub Actions, e instálala. La APK de prueba usa firma de depuración.
+2. Selecciona un JAR; añade su JAD si contiene información que falta en el manifiesto.
+3. Pulsa **Crear APK en este teléfono**. La notificación mantiene la compilación en primer plano.
+4. Pulsa **Guardar APK** y elige dónde guardarla con el selector de archivos de Android.
+
+No exporta proyectos y no usa ADB. El juego conserva su bytecode y recursos originales, convertidos
+a DEX; no se descompila. Cada juego tiene un applicationId propio, estable entre versiones que
+conservan nombre, editor y clase MIDlet. Los ajustes se cambian dentro del juego.
+
+## Requisitos y límites
+
+- Android 8/API 26 o posterior. La prueba automatizada completa usa Android 15/API 35; otros
+  fabricantes/versiones necesitan pruebas, especialmente el compilador D8 en Android antiguo.
+- Se recomienda un dispositivo con al menos 4 GB de RAM y espacio libre para los archivos temporales.
+  Límite de entrada: 64 MiB; recursos descomprimidos: 200 MiB, con 32 MiB por entrada.
+- PNG/GIF, manifiesto/JAD, nombre y llamadas de dibujo/buffers aportan pistas de resolución.
+  La confianza se muestra en el registro. Si falta evidencia se usa 240x320 y el menú permite corregirla.
+- Los juegos nuevos se firman con una identidad PKCS#12 reutilizable, almacenada en `files/signing/identity.p12`. Desde la app puedes exportar un respaldo `.p12` protegido con contraseña (mínimo 12 caracteres) y restaurarlo en una instalación limpia **antes de generar el primer juego**. La restauración no reemplaza una firma ya existente, para evitar invalidar actualizaciones. Conserva tanto el respaldo como la contraseña fuera del teléfono. Borrar datos o
+  desinstalar la herramienta elimina la posibilidad de actualizar APKs firmadas con esa clave.
+  No es la clave de depuración de tu PC: una APK de escritorio con el mismo paquete/firma distinta
+  no se puede actualizar directamente. La aplicación no desinstala juegos ni borra sus datos.
+- APIs ausentes, ofuscación incompatible, cámaras fijas o recursos cifrados siguen necesitando
+  parches del juego; una APK compilada no garantiza que todos los juegos funcionen.
+- Una interrupción del proceso permite volver a intentarlo, pero no reanuda un compilador a medias.
+
+## Compilar la herramienta una vez
+
+Abre esta carpeta en Android Studio o ejecuta `./gradlew :converter:assembleDebug` con JDK 17,
+SDK 35, Build Tools 35 y NDK 28.2.13676358. Gradle compila primero la plantilla con todos los
+módulos del motor y la incluye como asset en la APK de la herramienta. Esta preparación necesita
+internet; **las conversiones posteriores en el teléfono no**.
+
+El workflow `.github/workflows/android-offline.yml` compila la herramienta, ejecuta una conversión
+real en un emulador con Wi-Fi/datos apagados, verifica la firma, instala la APK resultante y abre
+el juego de ejemplo. Al crear una etiqueta de versión `v*`, el workflow publica el instalador `j2a-offline-android.apk` en GitHub Releases **solo después de superar la validación**. Para commits normales en `main` queda disponible como artefacto en Actions. **j2a-offline-android** incluye solo el instalador de la herramienta;
+**j2a-offline-validation** contiene el juego de prueba convertido y los registros.
+Comprueba el resultado del workflow antes de considerar validada una compilación.
+
+D8/R8: BSD 3-Clause. apksig: Apache 2.0. Los módulos extra y 3D conservan sus avisos/licencias
+en `runtime-extra/NOTICE-EXTRA.md`, `runtime-m3g/NOTICE-M3G.md` y los shaders del motor.
+Las fuentes de herramientas están documentadas en los proyectos oficiales:
+[R8](https://r8.googlesource.com/r8/), [apksig](https://android.googlesource.com/platform/tools/apksig/).
+
+## Almacenamiento temporal y apariencia
+
+Los archivos intermedios de cada conversión se crean en la caché y se eliminan al terminar (también si falla). Solo se mantiene una APK terminada pendiente de exportación, que se elimina tras guardarla correctamente. El JAR/JAD seleccionado se conserva como entrada hasta elegir otro archivo; no se borra automáticamente. La interfaz admite desplazamiento vertical y utiliza colores dinámicos del sistema en Android 12+ cuando están disponibles.
+
+**Firma y actualizaciones:** la firma anterior basada en AndroidKeyStore no es compatible automáticamente con la nueva identidad PKCS#12. Las APK ya instaladas con la firma antigua no se podrán actualizar con una identidad nueva sin una migración específica. Para nuevas APK, respalda la identidad antes de borrar datos o desinstalar J2Droid. La compatibilidad de actualización requiere además el mismo `applicationId` y un `versionCode` superior. El instalador de la propia herramienta tiene una firma independiente de la de los juegos.
